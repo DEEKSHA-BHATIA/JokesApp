@@ -7,102 +7,74 @@
 
 import UIKit
 
-
-
-
 class ViewController: UIViewController,UITableViewDelegate,UITableViewDataSource {
-    
+    var jokesArray: [String]? = []
     private var myTableView: UITableView!
     var timer: Timer?
-    private var films: [Jokes]?
-    var arr : [String]? = []
+    let cellReuseIdentifier = "PaddedCell"
+    fileprivate let jokesPresenter = JokesPresenter()
+    fileprivate var jokesToDisplay = [JokesViewData]()
+    let maxItems = 10
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        let barHeight: CGFloat = UIApplication.shared.statusBarFrame.size.height
-        let displayWidth: CGFloat = self.view.frame.width
-        let displayHeight: CGFloat = self.view.frame.height
-        myTableView = UITableView(frame: CGRect(x: 0, y: barHeight, width: displayWidth, height: displayHeight - barHeight))
-        myTableView.register(UITableViewCell.self, forCellReuseIdentifier: "MyCell")
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            let statusBarFrame = windowScene.statusBarManager?.statusBarFrame
+            let barHeight: CGFloat = statusBarFrame?.size.height ?? 0
+            let displayWidth: CGFloat = self.view.frame.width
+            let displayHeight: CGFloat = self.view.frame.height
+            myTableView = UITableView(frame: CGRect(x: 10, y: barHeight + 20, width: displayWidth - 10, height: displayHeight - barHeight))
+        }
+        self.view.backgroundColor = UIColor.black
+        myTableView.backgroundColor = UIColor.black
+        myTableView.register(PaddedTableViewCell.self, forCellReuseIdentifier: cellReuseIdentifier)
         myTableView.dataSource = self
         myTableView.delegate = self
         self.view.addSubview(myTableView)
+        self.jokesPresenter.attachView(view: self)
         startTimer()
+        
     }
-    
-    
     
     func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            let urlString = "https://geek-jokes.sameerkumar.website/api?format=json"
-            
-            // Ensure the string is a valid URL
-            if let url = URL(string: urlString) {
-                // Create a URL session task
-                let task = URLSession.shared.dataTask(with: url) { (data, response, error) in
-                    // Ensure there's no error, and there is data to process
-                    if let error = error {
-                        print("Error fetching data: \(error)")
-                        return
-                    }
-                    if let data = data,
-                       
-                        let filmSummary = try? JSONDecoder().decode(Jokes.self, from: data){
-                        print("ddds",filmSummary.joke!)
-                        self!.films = [filmSummary]
-                        self?.arr?.append(filmSummary.joke!)
-                        DispatchQueue.main.async {
-                            self!.myTableView.reloadData()
-                        }
-                    }
-                }
-                
-                // Start the task
-                task.resume()
-            }
+            self?.jokesPresenter.getJokes()
         }
-        
     }
-    
-    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return self.arr?.count ?? 0
+        if jokesArray?.count ?? 0 > maxItems {
+            jokesArray?.removeFirst()
+        }
+        return self.jokesArray?.count ?? 0
+    }
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 100.0
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "MyCell", for: indexPath as IndexPath)
-        cell.textLabel!.text = "\(String(describing: self.arr?[indexPath.row]))"
-        cell.backgroundColor = UIColor.green
+        let cell = tableView.dequeueReusableCell(withIdentifier: cellReuseIdentifier, for: indexPath as IndexPath) as! PaddedTableViewCell
+        let reversedIndex = ((jokesArray?.count ?? 0) - 1) - indexPath.row
+        let userViewData = jokesArray?[reversedIndex]
+        cell.textLabel?.text = userViewData?.description ?? ""
+        cell.textLabel?.numberOfLines = 0
+        cell.textLabel?.lineBreakMode = .byWordWrapping
+        cell.backgroundColor = UIColor.black
         return cell
     }
+    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+        let headerView = UIView()
+        let label = UILabel(frame: CGRect(x: 140, y: 0, width: tableView.bounds.width, height: 20))
+        label.text = "Unlimit Jokes"
+        label.textColor = UIColor(red: 57/255, green: 255/255, blue: 20/255, alpha: 1.0)
+        headerView.addSubview(label)
+        return headerView
+    }
     
-    func fetchFilms(completionHandler: @escaping([Jokes]) -> Void){
-        let url = URL(string: "https://geek-jokes.sameerkumar.website/api?format=json")!
-        
-        let task = URLSession.shared.dataTask(with: url, completionHandler:{(data,response,error) in
-            if let error = error {
-                print("error with fetching films: \(error)")
-                return
-            }
-            
-            guard let httpResponse = response as? HTTPURLResponse,
-                  (200...299).contains(httpResponse.statusCode) else{
-                print("Error with the response, unexpected status code: \(response)")
-                return
-            }
-            DispatchQueue.main.async {
-                
-                
-                if let data = data,
-                   
-                    let filmSummary = try? JSONDecoder().decode(Jokes.self, from: data){
-                    self.films = [filmSummary]
-                    completionHandler(self.films!)
-                }
-            }
-        })
-        
-        task.resume();
+}
+extension ViewController : JokesView{
+    func setJokes(_ jokes: [JokesViewData]) {
+        jokesToDisplay = jokes
+        jokesArray?.append(jokesToDisplay[0].joke)
+        myTableView?.reloadData()
     }
 }
-

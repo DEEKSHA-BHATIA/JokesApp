@@ -6,3 +6,10 @@
 //
 
 import Foundation
+protocol JokesView {
+    func setJokes(_ jokes: [JokesViewData])
+}
+public struct JokesViewData {
+    let joke: String
+}
+

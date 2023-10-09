@@ -6,54 +6,34 @@
 //
 
 import Foundation
+import Alamofire
 
-
-class LoginPresenter {
-    weak var view: LoginView?
-    let loginService: LoginService
-
-    init(view: LoginView, service: LoginService) {
-        self.view = view
-        self.loginService = service
+class JokesPresenter {
+    var jokeView: JokesView?
+   
+    func attachView(view: JokesView?) {
+        if let view = view { jokeView = view }
+        
     }
-
-    func validateCredentials(username: String, password: String) {
-        loginService.loginUser() { [weak self] result in
-            switch result {
-            case .joke:
-                break
-            case .failure(let message):
-                break;
+    func getJokes(){
+        let jokesURL = "https://geek-jokes.sameerkumar.website/api?format=json"
+        AF.request(jokesURL, method: .get, encoding: JSONEncoding.default)
+            .responseJSON{ response in
+                switch response.result {
+                case .success:
+                    let decoder = JSONDecoder()
+                    if let data = response.data{
+                        do{
+                            let jsonData = try decoder.decode(Jokes.self, from: data)
+                            self.jokeView?.setJokes([JokesViewData(joke: jsonData.joke ?? "")])
+                        }catch{
+                            print("JSONDecoder Error",error)
+                        }
+                    }
+                case .failure(_):
+                    print("API Error")
+                    break;
             }
         }
     }
 }
-//    func fetchData(completionHandler: @escaping([Jokes]) -> Void){
-//        let url = URL(string: "https://geek-jokes.sameerkumar.website/api?format=json")!
-//
-//        let task = URLSession.shared.dataTask(with: url, completionHandler:{(data,response,error) in
-//            if let error = error {
-//                print("error with fetching films: \(error)")
-//                return
-//            }
-//
-//            guard let httpResponse = response as? HTTPURLResponse,
-//                  (200...299).contains(httpResponse.statusCode) else{
-//                print("Error with the response, unexpected status code: \(response)")
-//                return
-//            }
-//            DispatchQueue.main.async {
-//
-//
-//                if let data = data,
-//
-//                    let filmSummary = try? JSONDecoder().decode(Jokes.self, from: data){
-//                    completionHandler([filmSummary])
-//                }
-//            }
-//            view?.displayData(data: data)
-//        })
-//
-//        task.resume();
-//    }
-//}
