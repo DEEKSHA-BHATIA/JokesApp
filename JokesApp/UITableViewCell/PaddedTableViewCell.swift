@@ -29,8 +29,8 @@ class PaddedTableViewCell: UITableViewCell {
     
     private func setupCellContent() {
         contentView.addSubview(container)
-        contentView.layer.cornerRadius = 10
-        contentView.layer.borderWidth = 1
+        contentView.layer.cornerRadius = 15
+        contentView.layer.borderWidth = 3
         contentView.layer.borderColor = UIColor.black.cgColor
         contentView.clipsToBounds = true
         NSLayoutConstraint.activate([
